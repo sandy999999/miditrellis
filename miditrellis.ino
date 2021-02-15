@@ -286,8 +286,6 @@ TrellisCallback blink(keyEvent evt){
       offColor(midiKey, octave);
     }
 
-    Serial.printf("midiKey number %i\n", midiKey);
-    Serial.printf("trellisKey number %i\n", trellisKey);
     if (semitones[midiKey % 16] >= 0) {
       if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
         usbMIDI.sendNoteOn(semitones[midiKey % 16] + octaveBaseNotes[octave], 64, MIDI_CHANNEL);
@@ -321,6 +319,7 @@ TrellisCallback blink(keyEvent evt){
           offColor(i, i > 15 ? topOctave : bottomOctave);
       }
     }
+  
   trellis.show();
   return 0;
 }
@@ -368,18 +367,9 @@ void setup() {
 
 void loop() {
   if ( whiteButton.pressed() ) {
-    if(state == 0){
-      state = 1;
-    } else {
-      state = 0;
-    }
+    Serial.printf("white button pressed \n");
   }
 
-  trellis.read();
-  
-  if(state == 0){
-  }
-  
   greenButton.update();
   redButton.update();
   whiteButton.update();
@@ -391,9 +381,14 @@ void loop() {
     
   }
 
+  if(!digitalRead(INT_PIN)){
+    trellis.read();
+  }
+  
   while (usbMIDI.read()) {
     // ignore incoming messages
   }
+
 }
 
 
