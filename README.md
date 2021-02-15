@@ -5,3 +5,4 @@ Firmware for midi controller with Adafruit Neotrellis and Teensy 4.0
 3 x push-buttons with external pullup-resistors
 1 x custom lego casing
 
+Neotrellis tiling is upside down because of cables
