@@ -24,9 +24,9 @@
  * Red button - Stop playing
  * White button - Switch view (keyboard -> sequence)
  * 
- * 
- * View 0 - Keyboard (2 keyboard rows, western scale)
- * View 1 - View midi sequence. Last pressed note from View 0 as input at steps
+ * Views:
+ * - Keyboard (2 keyboard rows, western scale)
+ * - View midi sequence. Last pressed note from View 0 as input at steps
  */
 
 #include "Adafruit_NeoTrellis.h"
@@ -35,9 +35,9 @@
 #define MIDI_CHANNEL 0
 
 #define INT_PIN 14 // interrupt signal from neotrellis
-#define GREEN_PIN 1
+#define GREEN_PIN 3
 #define RED_PIN 2
-#define WHITE_PIN 3
+#define WHITE_PIN 1
 
 Bounce2::Button greenButton = Bounce2::Button();
 Bounce2::Button redButton = Bounce2::Button();
@@ -55,9 +55,8 @@ Adafruit_NeoTrellis t_array[Y_DIM/4][X_DIM/4] = {
 //pass this matrix to the multitrellis object
 Adafruit_MultiTrellis trellis((Adafruit_NeoTrellis *)t_array, Y_DIM/4, X_DIM/4);
 
-int view = 0;
-
-// Keyboard view = 0
+bool seqView = false;
+// Keyboard
 int semitones[16] = {
     0,  2, 4,  5, 7, 9, 11, -3,
     -1, 1, 3, -1, 6, 8, 10, -2,
@@ -65,13 +64,15 @@ int semitones[16] = {
 byte octaveBaseNotes[] = {
     24, 36, 48, 60, 72, 84, 96, 108,
 };
-int topOctave = 1, bottomOctave = 3; // Just pleasant defaults
+int topOctave = 3, bottomOctave = 1;
 
-//Sequencer view = 1
-// Note Variables
+//Sequencer
 int clockCount;
-int selectedNote = -1;   // The note to be placed in sequence position. Temp until it is confirmed
+int selectedNote = 0;
 bool playing = false;
+int sequence[Y_DIM*X_DIM];
+int sequenceCount;
+
 
 //Translate neotrellis keys
 int translateKey(int key){
@@ -175,110 +176,22 @@ int translateKey(int key){
         break;
     }
     return (newKey);
+}
+
+int getOctave(int key){
+  int octave;
+  if (key > 15) {
+    octave = topOctave;
+  } else {
+    octave = bottomOctave;
   }
+  return (octave);
+}
 
 void offColor(int key, int octave) {
   int trellisKey = translateKey(key);
-  /*
-  int trellisKey = 0;
-  switch (key) {
-      case 0:
-        trellisKey = 3;
-        break;
-      case 1:
-        trellisKey = 2;
-        break;
-      case 2:
-        trellisKey = 1;
-        break;
-      case 3:
-        trellisKey = 0;
-        break;
-      case 4:
-        trellisKey = 7;
-        break;
-      case 5:
-        trellisKey = 6;
-        break;
-      case 6:
-        trellisKey = 5;
-        break;
-      case 7:
-        trellisKey = 4;
-        break;
-      case 8:
-        trellisKey = 11;
-        break;
-      case 9:
-        trellisKey = 10;
-        break;
-      case 10:
-        trellisKey = 9;
-        break;
-      case 11:
-        trellisKey = 8;
-        break;
-      case 12:
-        trellisKey = 15;
-        break;
-      case 13:
-        trellisKey = 14;
-        break;
-      case 14:
-        trellisKey = 13;
-        break;
-      case 15:
-        trellisKey = 12;
-        break;
-      case 16:
-        trellisKey = 19;
-        break;
-      case 17:
-        trellisKey = 18;
-        break;
-      case 18:
-        trellisKey = 17;
-        break;
-      case 19:
-        trellisKey = 16;
-        break;
-      case 20:
-        trellisKey = 23;
-        break;
-      case 21:
-        trellisKey = 22;
-        break;
-      case 22:
-        trellisKey = 21;
-        break;
-      case 23:
-        trellisKey = 20;
-        break;
-      case 24:
-        trellisKey = 27;
-        break;
-      case 25:
-        trellisKey = 26;
-        break;
-      case 26:
-        trellisKey = 25;
-        break;
-      case 27:
-        trellisKey = 24;
-        break;
-      case 28:
-        trellisKey = 31;
-        break;
-      case 29:
-        trellisKey = 30;
-        break;
-      case 30:
-        trellisKey = 29;
-        break;
-      case 31:
-        trellisKey = 28;
-        break;
-  }*/
+  octave = getOctave(key);
+  
   if (semitones[key % 16] < 0) {
     trellis.setPixelColor(trellisKey, 0);
   } else {
@@ -287,118 +200,11 @@ void offColor(int key, int octave) {
 }
 
 TrellisCallback blink(keyEvent evt){
-    int trellisKey = evt.bit.NUM;
-    int midiKey = translateKey(trellisKey);
-    /*
-    switch (trellisKey) {
-      case 0:
-        midiKey = 3;
-        break;
-      case 1:
-        midiKey = 2;
-        break;
-      case 2:
-        midiKey = 1;
-        break;
-      case 3:
-        midiKey = 0;
-        break;
-      case 4:
-        midiKey = 7;
-        break;
-      case 5:
-        midiKey = 6;
-        break;
-      case 6:
-        midiKey = 5;
-        break;
-      case 7:
-        midiKey = 4;
-        break;
-      case 8:
-        midiKey = 11;
-        break;
-      case 9:
-        midiKey = 10;
-        break;
-      case 10:
-        midiKey = 9;
-        break;
-      case 11:
-        midiKey = 8;
-        break;
-      case 12:
-        midiKey = 15;
-        break;
-      case 13:
-        midiKey = 14;
-        break;
-      case 14:
-        midiKey = 13;
-        break;
-      case 15:
-        midiKey = 12;
-        break;
-      case 16:
-        midiKey = 19;
-        break;
-      case 17:
-        midiKey = 18;
-        break;
-      case 18:
-        midiKey = 17;
-        break;
-      case 19:
-        midiKey = 16;
-        break;
-      case 20:
-        midiKey = 23;
-        break;
-      case 21:
-        midiKey = 22;
-        break;
-      case 22:
-        midiKey = 21;
-        break;
-      case 23:
-        midiKey = 20;
-        break;
-      case 24:
-        midiKey = 27;
-        break;
-      case 25:
-        midiKey = 26;
-        break;
-      case 26:
-        midiKey = 25;
-        break;
-      case 27:
-        midiKey = 24;
-        break;
-      case 28:
-        midiKey = 31;
-        break;
-      case 29:
-        midiKey = 30;
-        break;
-      case 30:
-        midiKey = 29;
-        break;
-      case 31:
-        midiKey = 28;
-        break;
-    }
-    */
-
-    int octave;
-
-    if (midiKey > 15) {
-      octave = topOctave;
-    } else {
-      octave = bottomOctave;
-    }
-
-    if(view == 0){
+  int trellisKey = evt.bit.NUM;
+  int midiKey = translateKey(trellisKey);
+  int octave = getOctave(midiKey);
+  
+  if(!seqView){
       if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
         trellis.setPixelColor(trellisKey, Wheel(random(255)));
       } else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING) {
@@ -436,33 +242,26 @@ TrellisCallback blink(keyEvent evt){
           if (bottomOctave < 0)
             bottomOctave = 0;
   
-          for (int i = 0; i < Y_DIM*X_DIM; i++)
-            offColor(i, i > 15 ? topOctave : bottomOctave);
+          for (int i = 0; i < Y_DIM*X_DIM; i++){
+            int key = translateKey(i);
+            offColor(key, key > 15 ? topOctave : bottomOctave);
+          }
         }
       }
-  } else if (view == 1){
+  } else if (seqView){
     if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
-      
-    } else if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_FALLING) {
-      
+      trellis.setPixelColor(trellisKey, Wheel(random(255)));
+      Serial.printf("Sequencer Note  %i\n", selectedNote);
+      if (sequence[midiKey] == 0){
+        sequence[midiKey] = 1;
+      } else{
+      sequence[midiKey] = 0;
+      trellis.setPixelColor(trellisKey, 0);
+      }
     }
   }
-  
   trellis.show();
   return 0;
-}
-
-
-void noteSelect(int rootNote, int buttonPressed){
-  /*
-   * When in state 1 and keyboard is shown, pressing a key button 
-   * runs this. It saves the selected key in tempSelectNote 
-   * When confirmation key is pressed
-   * noteConfirmed is run to finalize and return to state 0
-   */
-  tempSelectNote = rootNote + (octave * 12) + transpose;
-  tempButtonPressed = buttonPressed;
-
 }
 
 void setup() {
@@ -489,45 +288,49 @@ void setup() {
 
   //do a little animation to show we're on
   for(uint16_t i=0; i<Y_DIM*X_DIM; i++) {
-    trellis.setPixelColor(i, Wheel(map(i, 0, Y_DIM*X_DIM, 0, 255)));
+    int key = translateKey(i);
+    trellis.setPixelColor(key, Wheel(map(i, 0, Y_DIM*X_DIM, 0, 255)));
     trellis.show();
     delay(50);
   }
+  //Fill sequence with 0s (inactive steps)
+  for ( int i = 0; i < Y_DIM*X_DIM; ++i ){
+    sequence[i] = 0;
+  }
   //activate all keys and set callbacks
   for(int i=0; i<Y_DIM*X_DIM; i++){
-    offColor(i, i < 16 ? topOctave : bottomOctave);
-    trellis.show();
+    updateKeys();
     trellis.activateKey(i, SEESAW_KEYPAD_EDGE_RISING, true);
     trellis.activateKey(i, SEESAW_KEYPAD_EDGE_FALLING, true);
     trellis.registerCallback(i, blink);
   }
-
-  usbMIDI.setHandleNoteOff(onNoteOff);
-  usbMIDI.setHandleNoteOn(onNoteOn);
-  usbMIDI.setHandleSongPosition(onSongPosition);
-  usbMIDI.setHandleClock(onClock);
-  usbMIDI.setHandleStart(onStart);
 }
 
 
 void loop() {
-  if ( whiteButton.pressed() ) {
+  if (whiteButton.pressed()) {
     Serial.printf("white button pressed \n");
+    Serial.printf("Seqview: \n", seqView);
+    if (!seqView ){
+      seqView = true;
+    } else{
+      seqView = false;
+    }
+    updateKeys();
   }
-  if ( greenButton.pressed() ) {  
+  if (greenButton.pressed()) {  
     usbMIDI.sendRealTime(usbMIDI.Start);
   }
-  if ( redButton.pressed() ) {
+  if (redButton.pressed()) {
     usbMIDI.sendRealTime(usbMIDI.Stop);    
     for (int i = 23; i < 119; i++){
       usbMIDI.sendNoteOff(i, 64, MIDI_CHANNEL);
     } 
   }
-
   greenButton.update();
   redButton.update();
   whiteButton.update();
-  
+
   if(!digitalRead(INT_PIN)){
     trellis.read();
   }
@@ -537,19 +340,38 @@ void loop() {
   }
 }
 
-void onNoteOn(byte channel, byte note, byte velocity) {
-  
-}
-
-void onNoteOff(byte channel, byte note, byte velocity) {
-  
+void updateKeys(){
+  for(int i=0; i<Y_DIM*X_DIM; i++){
+    int key = translateKey(i);
+    if(seqView){
+       if(sequence[i] == 1){
+        trellis.setPixelColor(i, Wheel(random(255)));  
+       } else{
+        trellis.setPixelColor(i, 0);
+       } 
+    } else{
+      offColor(key, key < 16 ? topOctave : bottomOctave);
+    }
+  } 
+  trellis.show();
 }
 
 void onClock() {
+  sequenceCount++;
   if (clockCount<=3){
-    usbMIDI.sendNoteOn(selectedNote, 64, MIDI_CHANNEL);
-  }else{
-    usbMIDI.sendNoteOff(selectedNote, 64, MIDI_CHANNEL);
+    if(sequenceCount > 31){
+      sequenceCount = -1;
+    }
+    if(seqView){
+      int key = translateKey(sequenceCount);
+      trellis.setPixelColor(key, 0xFF0000);  
+      trellis.show();
+      if(sequence[sequenceCount] == 1){
+        usbMIDI.sendNoteOn(selectedNote, 64, MIDI_CHANNEL);  
+      } else{
+        usbMIDI.sendNoteOff(selectedNote, 64, MIDI_CHANNEL);  
+      }  
+    }
   }
   clockCount++;
   clockCount %= 24;
@@ -557,6 +379,7 @@ void onClock() {
 
 void onStart(){
   clockCount = 0;
+  sequenceCount = -1;
 }
 
 void onSongPosition(uint16_t semiQ){
