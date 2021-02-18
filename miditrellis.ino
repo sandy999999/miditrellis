@@ -66,6 +66,7 @@ byte octaveBaseNotes[] = {
 };
 int topOctave = 3, bottomOctave = 1;
 
+int midiKey = 0;
 //Sequencer
 int clockCount;
 int selectedNote = 0;
@@ -201,7 +202,7 @@ void offColor(int key, int octave) {
 
 TrellisCallback blink(keyEvent evt){
   int trellisKey = evt.bit.NUM;
-  int midiKey = translateKey(trellisKey);
+  midiKey = translateKey(trellisKey);
   int octave = getOctave(midiKey);
   
   if(!seqView){
@@ -250,13 +251,13 @@ TrellisCallback blink(keyEvent evt){
       }
   } else if (seqView){
     if (evt.bit.EDGE == SEESAW_KEYPAD_EDGE_RISING) {
-      trellis.setPixelColor(trellisKey, Wheel(random(255)));
       Serial.printf("Sequencer Note  %i\n", selectedNote);
       if (sequence[midiKey] == 0){
         sequence[midiKey] = 1;
+        trellis.setPixelColor(trellisKey, Wheel(random(255)));
       } else{
-      sequence[midiKey] = 0;
-      trellis.setPixelColor(trellisKey, 0);
+        sequence[midiKey] = 0;
+        trellis.setPixelColor(trellisKey, 0);
       }
     }
   }
@@ -345,12 +346,12 @@ void updateKeys(){
     int key = translateKey(i);
     if(seqView){
        if(sequence[i] == 1){
-        trellis.setPixelColor(i, Wheel(random(255)));  
+        trellis.setPixelColor(key, Wheel(random(255)));  
        } else{
-        trellis.setPixelColor(i, 0);
-       } 
+        trellis.setPixelColor(key, 0);
+       }
     } else{
-      offColor(key, key < 16 ? topOctave : bottomOctave);
+      offColor(i, i < 16 ? topOctave : bottomOctave);
     }
   } 
   trellis.show();
