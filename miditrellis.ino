@@ -346,7 +346,7 @@ void updateKeys(){
     int key = translateKey(i);
     if(seqView){
        if(sequence[i] == 1){
-        trellis.setPixelColor(key, Wheel(random(255)));  
+        trellis.setPixelColor(key, Wheel(random(255)));
        } else{
         trellis.setPixelColor(key, 0);
        }
