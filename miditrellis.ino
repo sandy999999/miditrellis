@@ -30,14 +30,15 @@
  */
 
 #include "Adafruit_NeoTrellis.h"
+#include "FifteenStep.h"
 #include <Bounce2.h>
 
 #define MIDI_CHANNEL 0
 
 #define INT_PIN 14 // interrupt signal from neotrellis
-#define GREEN_PIN 3
+#define GREEN_PIN 1
 #define RED_PIN 2
-#define WHITE_PIN 1
+#define WHITE_PIN 3
 
 Bounce2::Button greenButton = Bounce2::Button();
 Bounce2::Button redButton = Bounce2::Button();
@@ -73,6 +74,8 @@ int selectedNote = 0;
 bool playing = false;
 int sequence[Y_DIM*X_DIM];
 int sequenceCount;
+int steps = 32;
+int tempo = 130;
 
 
 //Translate neotrellis keys
@@ -305,6 +308,10 @@ void setup() {
     trellis.activateKey(i, SEESAW_KEYPAD_EDGE_FALLING, true);
     trellis.registerCallback(i, blink);
   }
+
+  usbMIDI.setHandleSongPosition(onSongPosition);
+  usbMIDI.setHandleClock(onClock);
+  usbMIDI.setHandleStart(onStart);
 }
 
 
@@ -358,6 +365,7 @@ void updateKeys(){
 }
 
 void onClock() {
+  Serial.printf("Onclock %i\n");
   sequenceCount++;
   if (clockCount<=3){
     if(sequenceCount > 31){
@@ -385,6 +393,7 @@ void onStart(){
 
 void onSongPosition(uint16_t semiQ){
   clockCount = semiQ*6 ; 
+  Serial.printf("songpos %i\n");
 }
 
 uint32_t Wheel(byte WheelPos) {
