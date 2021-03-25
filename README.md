@@ -1,3 +1,5 @@
+*Work in progess*
+
 # miditrellis
 Firmware for midi controller with Adafruit Neotrellis and Teensy 4.0
 
@@ -36,4 +38,4 @@ Step sequencer syncs to DAW and steps are synced to 1/8th notes.
  * 
  * Views:
  * - Keyboard (2 keyboard rows, western scale)
- * - Vi
+ * - Step sequencer
